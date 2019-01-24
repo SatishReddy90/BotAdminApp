@@ -3,6 +3,31 @@
 @{
     ViewData["Title"] = "Home Page";
 }
+<!-- Modal -->
+<div class="modal fade" tabindex="-1" id="loginModal"
+     data-keyboard="false" data-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Sample HTTP Request</h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    ×
+                </button>
+            </div>
+            <div class="modal-body">
+                POST /knowledgebases/<span id="modal-kbid"></span>/generateAnswer<br />
+                Host: <span id="modal-host"></span>/qnamaker <br />
+                Authorization: EndpointKey <span id="modal-endpointkey"></span><br />
+                Content-Type: application/json<br />
+                {"question":"&lt; question &gt;"}<br />
+            </div>
+            <div class="modal-footer">
+
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- The Modal -->
 <div class="modal" id="deleteModal">
     <div class="modal-dialog">
@@ -49,6 +74,7 @@
                 <th>
                     @Html.DisplayNameFor(model => model.HostName)
                 </th>
+                <th>Info</th>
                 <th>Edit</th>
                 <th>Delete</th>
             </tr>
@@ -56,26 +82,29 @@
         <tbody>
             @foreach (var item in Model)
             {
-                <tr>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.Name)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.LastChangedTimestamp)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.LastPublishedTimestamp)
-                    </td>
-                    <td>
-                        @Html.DisplayFor(modelItem => item.HostName)
-                    </td>
-                    <td>
-                        <button type="button" class="btn btn-primary">Edit</button>
-                    </td>
-                    <td>
-                        <button type="button" class="btn btn-danger" onclick="confirmDeleteModal('@item.Id')">Deleet</button>
-                    </td>
-                </tr>
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Name)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.LastChangedTimestamp)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.LastPublishedTimestamp)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.HostName)
+                </td>
+                <td>
+                    <button type="button" class="btn btn-info" onclick="viewKBInfo('@item.Id')">Info</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-primary">Edit</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-danger" onclick="confirmDeleteModal('@item.Id')">Delete</button>
+                </td>
+            </tr>
             }
             @if (Model.Count() == 0)
             {
@@ -132,5 +161,44 @@
                     hideLoader();
                 });
         }
+    }
+
+    function viewKBInfo(kbid) {
+        $.ajax({
+            url: "@ViewData["QnAEndpointkeyUrl"]",
+            beforeSend: function (xhrObj) {
+                // Request headers
+                xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
+            },
+            type: "GET",
+
+        })
+            .done(function (endpointResponse) {
+                $.ajax({
+                    url: "@ViewData["QnAGetUrl"]" + "/" + kbid,
+                    beforeSend: function (xhrObj) {
+                        // Request headers
+                        xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
+                    },
+                    type: "GET",
+
+                })
+                    .done(function (response) {
+                        $("#modal-endpointkey").text(endpointResponse.primaryEndpointKey);
+                        $("#modal-kbid").text(kbid);
+                        $("#modal-host").text(response.hostName);
+                        $("#loginModal").modal('show');
+                    })
+                    .fail(function (response) {
+                        toastr.error(response.responseText, response.statusText);
+                        hideLoader();
+                    });
+               
+            })
+            .fail(function (endpointResponse) {
+                toastr.error(response.responseText, response.statusText);
+                hideLoader();
+            });
+       
     }
 </script>
