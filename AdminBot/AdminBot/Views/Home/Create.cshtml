@@ -1,0 +1,141 @@
+﻿@model CreateKBModel
+@{
+    ViewData["Title"] = "Create";
+}
+
+<div class="container jumbotron" id="form-wrap">
+    <div class="form-group">
+        <label for="KnowledgeBaseName">Knowledge Base Name:</label>
+        <input asp-for="Name" type="text" id="txt-name" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label for="WebUrl">Web Url: </label>
+        <input type="text" class="form-control" id="txt-url" />
+    </div>
+    @*<div class="form-group">
+            <label for="WebUrl">Is Recursive: </label>
+            <input type="checkbox" class="form-check" id="chk-recursive" />
+
+        </div>*@
+    <div class="row float-right pr-5">
+        <button type="button" class="btn btn-primary float-right" id="btn-extract" onclick="extractUrls()">Extract Url Links</button>
+    </div>
+    <br />
+    <div id="loader"></div>
+    <br />
+    <div class="form-group">
+        <hr />
+        <label for="WebUrl">Extracted Urls: </label>
+        <textarea asp-for="Urls" class="form-control" id="txt-extracted-urls" rows="10"></textarea>
+    </div>
+    <button type="button" class="btn btn-primary" onclick="createYourKB()">Crete Knowledge Base</button>
+</div>
+
+
+<script type="text/javascript">
+    var requestUrl = "@ViewData["QnACreateUrl"]";
+    var subkey = "@ViewData["QnASubScriptionKey"]";
+    var qnaHost = "@ViewData["QnAHost"]";
+    var qnaService = "@ViewData["QnAService"]";
+    var createKBStatus;
+    function extractUrls() {
+        var website = $("#txt-url").val();
+        //var isRecursive = $("#chk-recursive").prop("checked");
+        displayLoader();
+        $.ajax({
+            type: "POST",
+            url: "/Home/ExtractUrls",
+            data: { websiteUrl: website, isRecursive: false }
+        })
+            .done(function (response) {
+                $("#txt-extracted-urls").val(response);
+            })
+            .fail(function (response) {
+                toastr.error(response);
+            })
+            .always(function () { hideLoader(); });
+    }
+    
+    function displayLoader() {
+        $('#loader').addClass("loader");
+    }
+    function hideLoader() {
+        $('#loader').removeClass("loader");
+    }
+    function createYourKB() {
+        if (typeof $("#txt-extracted-urls").val() === "undefined" || $("#txt-extracted-urls").val() === "") {
+            toastr.error("Extracted urls can not be empty");
+            return;
+        }
+        var extractedUrls = ($("#txt-extracted-urls").val().split(','));
+        var createInput = {
+            name: $("#txt-name").val(),
+            qnaList: [
+                {
+                    id: 0,
+                    answer: "You can use our REST apis to manage your KB. See here for details: https://westus.dev.cognitive.microsoft.com/docs/services/58994a073d9e04097c7ba6fe/operations/58994a073d9e041ad42d9baa",
+                    source: "Custom Editorial",
+                    questions: [
+                        "How do I programmatically update my KB?"
+                    ],
+                    metadata: [{
+                        name: "category",
+                        value: "api"
+                    }]
+                }
+
+            ],
+            urls: extractedUrls,
+            files: []
+        };
+        displayLoader();
+        $.ajax({
+            url: requestUrl,
+            beforeSend: function (xhrObj) {
+                // Request headers
+                xhrObj.setRequestHeader("Content-Type", "application/json");
+                xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
+            },
+            type: "POST",
+            // Request body
+            data: JSON.stringify(createInput),
+        })
+            .done(function (data, textStatus, jqXHR) {
+                if (textStatus === "success" && data.operationState === "NotStarted")
+                    createKBStatus = setInterval(function () { getCreateKBStatus(data.operationId) }, 2000);
+            })
+            .fail(function (response) {
+                toastr.error(response.responseText, response.statusText);
+                hideLoader();
+            });
+        
+    }
+    function getCreateKBStatus(operationId) {
+        $.ajax({
+            url: qnaHost + qnaService + "/operations/" + operationId,
+            beforeSend: function (xhrObj) {
+                // Request headers
+                xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
+            },
+            type: "GET",
+            
+        })
+            .done(function (data) {
+                if (data.operationState === "Succeeded") {
+                    clearCreateKBStatusTimer();
+                    window.location.href = "/";
+                } else if (data.operationState === "Failed") {
+                    toastr.error(data.errorResponse.error.details[0].message, data.errorResponse.error.details[0].code);
+                    clearCreateKBStatusTimer();
+                }
+            })
+            .fail(function (response) {
+                toastr.error(response.responseText, response.statusText);
+                clearCreateKBStatusTimer();
+            });
+    }
+    function clearCreateKBStatusTimer() {
+        clearInterval(createKBStatus);
+        hideLoader();
+    }
+</script>

@@ -1,0 +1,107 @@
+﻿@model Knowledgebase
+@{
+    ViewData["Title"] = "Edit";
+}
+
+<div class="container">
+    <div class="row">
+        <h1>Manage knowledge base</h1>
+    </div>
+    <form asp-controller="Home" asp-action="Edit" method="post">
+        <div class="form-group">
+            <label for="Name">Service Name:</label>
+            <input asp-for="Name" class="form-control" />
+        </div>
+        <table class="table" id="tbl-urls">
+            <thead>
+                <tr>
+                    <th>URL</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Urls)
+                {
+                    <tr>
+                        <td>@Html.DisplayFor(modelItem => item)</td>
+                        <td><span class="glyphicon glyphicon-trash"></span></td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td><input type="text" id="txtUrl" class="form-control" /></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+        <div class="row">
+            <div class="col-6"><button id="btnAdd" type="button" class="btn btn-primary"><span class="glyphicon glyphicon-plus"></span> Add URL</button></div>
+            <div class="col-6"><button id="btnSave" type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-floppy-save"></span> Save</button></div>
+        </div>
+        
+
+    </form>
+</div>
+
+<script type="text/javascript">
+    $("body").on("click", "#btnAdd", function () {
+        var txtUrl = $("#txtUrl");
+
+        //Get the reference of the Table's TBODY element.
+        var tBody = $("#tbl-urls > TBODY")[0];
+
+        //Add Row.
+        var row = tBody.insertRow(-1);
+
+        //Add Url cell.
+        var cell = $(row.insertCell(-1));
+        cell.html(txtUrl.val());
+
+        //Add Button cell.
+        cell = $(row.insertCell(-1));
+        var btnRemove = $("<span />");
+        btnRemove.attr("class", "glyphicon glyphicon-trash");
+        //btnRemove.attr("onclick", "Remove(this);");
+        //btnRemove.val("Remove");
+        cell.append(btnRemove);
+
+        //Clear the TextBoxes.
+        txtUrl.val("");
+    });
+
+    function Remove(button) {
+        //Determine the reference of the Row using the Button.
+        var row = $(button).closest("TR");
+        var name = $("TD", row).eq(0).html();
+        if (confirm("Are sure you want to delete?")) {
+            //Get the reference of the Table.
+            var table = $("#tbl-urls")[0];
+
+            //Delete the Table row using it's Index.
+            table.deleteRow(row[0].rowIndex);
+        }
+    };
+
+    $("body").on("click", "#btnSave", function () {
+        //Loop through the Table rows and build a JSON array.
+        var urls = new Array();
+        $("#tblCustomers TBODY TR").each(function () {
+            var row = $(this);
+            var url = row.find("TD").eq(0).html();
+            urls.push(url);
+        });
+        toastr.success("Knowledge base has been saved successfully!");
+        ////Send the JSON array to Controller using AJAX.
+        //$.ajax({
+        //    type: "POST",
+        //    url: "/Home/Edit",
+        //    data: JSON.stringify(urls),
+        //    contentType: "application/json; charset=utf-8",
+        //    dataType: "json",
+        //    success: function (r) {
+        //        alert(r + " record(s) inserted.");
+        //    }
+        //});
+    });
+</script>

@@ -1,0 +1,92 @@
+﻿@model IEnumerable<Knowledgebase>
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+@if (Model.Count() == 0)
+{
+    <p><strong>The system is busy right now, please try after some time.</strong></p>
+}
+@if (Model.Count() > 0)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    @Html.DisplayNameFor(model => model.Name)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.LastChangedTimestamp)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.LastPublishedTimestamp)
+                </th>
+                <th>
+                    @Html.DisplayNameFor(model => model.HostName)
+                </th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Name)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.LastChangedTimestamp)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.LastPublishedTimestamp)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.HostName)
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.Id"><span class="glyphicon glyphicon-pencil"></span></a>
+                    </td>
+                    <td>
+                        <span class="glyphicon glyphicon-trash" onclick="deleteKB('@item.Id')"></span>
+                    </td>
+                </tr>
+            }
+            @if (Model.Count() == 0)
+            {
+                <tr>
+                    <td colspan="6">
+                        <p>No knowledge bases to display.</p>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+    <script type="text/javascript">
+        var requestUrl = "@ViewData["QnADeleteUrl"]";
+        var subkey = "@ViewData["QnASubScriptionKey"]";
+        function deleteKB(kbid) {
+            
+            $.ajax({
+                url: requestUrl + "/" + kbid,
+                beforeSend: function (xhrObj) {
+                    // Request headers
+                    xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
+                },
+                type: "DELETE",
+                
+            })
+                .done(function (response) {
+                    toastr.success("The knowledge base has been deleted successfully!");
+                    console.log(response);
+                    
+                })
+                .fail(function (response) {
+                    toastr.error(response.responseText, response.statusText);
+                    hideLoader();
+                });
+        }
+    </script>
