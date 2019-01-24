@@ -196,7 +196,7 @@
                
             })
             .fail(function (endpointResponse) {
-                toastr.error(response.responseText, response.statusText);
+                toastr.error(endpointResponse.responseText, endpointResponse.statusText);
                 hideLoader();
             });
        
