@@ -3,7 +3,31 @@
 @{
     ViewData["Title"] = "Home Page";
 }
+<!-- The Modal -->
+<div class="modal" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
 
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h4 class="modal-title">Delete Knowledge base</h4>
+                <button type="button" class="close" data-dismiss="modal" onclick="cancelDelete()">&times;</button>
+            </div>
+
+            <!-- Modal body -->
+            <div class="modal-body">
+                Do you really want to delete this knowledge base? This process cannot be undone.
+            </div>
+
+            <!-- Modal footer -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" onclick="cancelDelete()">Cancel</button>
+                <button type="button" class="btn btn-danger" data-dismiss="modal" onclick="deleteKB()">Delete</button>
+            </div>
+
+        </div>
+    </div>
+</div>
 @if (Model.Count() == 0)
 {
     <p><strong>The system is busy right now, please try after some time.</strong></p>
@@ -46,10 +70,10 @@
                         @Html.DisplayFor(modelItem => item.HostName)
                     </td>
                     <td>
-                        <a asp-action="Edit" asp-route-id="@item.Id"><span class="glyphicon glyphicon-pencil"></span></a>
+                        <button type="button" class="btn btn-primary">Edit</button>
                     </td>
                     <td>
-                        <span class="glyphicon glyphicon-trash" onclick="deleteKB('@item.Id')"></span>
+                        <button type="button" class="btn btn-danger" onclick="confirmDeleteModal('@item.Id')">Deleet</button>
                     </td>
                 </tr>
             }
@@ -64,29 +88,49 @@
         </tbody>
     </table>
 }
+<div id="loader"></div>
 
-    <script type="text/javascript">
-        var requestUrl = "@ViewData["QnADeleteUrl"]";
-        var subkey = "@ViewData["QnASubScriptionKey"]";
-        function deleteKB(kbid) {
-            
+
+<script type="text/javascript">
+    var requestUrl = "@ViewData["QnADeleteUrl"]";
+    var subkey = "@ViewData["QnASubScriptionKey"]";
+    var _kbid = "";
+
+    function confirmDeleteModal(kbid) {
+        _kbid = kbid;
+        $("#deleteModal").modal('show');
+    }
+    function cancelDelete() {
+        _kbid = "";
+    }
+    function displayLoader() {
+        $('#loader').addClass("loader");
+    }
+    function hideLoader() {
+        $('#loader').removeClass("loader");
+    }
+    function deleteKB() {
+        if (_kbid !== "") {
+            displayLoader();
             $.ajax({
-                url: requestUrl + "/" + kbid,
+                url: requestUrl + "/" + _kbid,
                 beforeSend: function (xhrObj) {
                     // Request headers
                     xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
                 },
                 type: "DELETE",
-                
+
             })
                 .done(function (response) {
                     toastr.success("The knowledge base has been deleted successfully!");
                     console.log(response);
-                    
+                    hideLoader();
+                    window.location.href = "/";
                 })
                 .fail(function (response) {
                     toastr.error(response.responseText, response.statusText);
                     hideLoader();
                 });
         }
-    </script>
+    }
+</script>
