@@ -24,6 +24,8 @@ namespace AdminBot.Controllers
         {
             ViewData["QnADeleteUrl"] = _appSettings.QnAMaker.Host + _appSettings.QnAMaker.Service + _appSettings.QnAMaker.Methods.Delete;
             ViewData["QnASubScriptionKey"] = _appSettings.QnAMaker.SubscriptionKey;
+            ViewData["QnAEndpointkeyUrl"] = _appSettings.QnAMaker.Host + _appSettings.QnAMaker.Service + _appSettings.QnAMaker.Methods.EndPointKeys;
+            ViewData["QnAGetUrl"] = _appSettings.QnAMaker.Host + _appSettings.QnAMaker.Service + _appSettings.QnAMaker.Methods.Get;
             try
             {
                 KBHelper kBHelper = new KBHelper(_appSettings);

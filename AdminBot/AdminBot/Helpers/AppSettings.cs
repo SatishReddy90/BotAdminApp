@@ -24,5 +24,6 @@ namespace AdminBot.Helpers
         public string Update { get; set; }
         public string Delete { get; set; }
         public string Get { get; set; }
+        public string EndPointKeys { get; set; }
     }
 }

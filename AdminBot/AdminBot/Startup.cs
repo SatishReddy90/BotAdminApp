@@ -43,7 +43,8 @@ namespace AdminBot
                         Get = Configuration["AppSettings:QnAMaker:QnAMethods:get"],
                         Create = Configuration["AppSettings:QnAMaker:QnAMethods:create"],
                         Update = Configuration["AppSettings:QnAMaker:QnAMethods:update"],
-                        Delete = Configuration["AppSettings:QnAMaker:QnAMethods:delete"]
+                        Delete = Configuration["AppSettings:QnAMaker:QnAMethods:delete"],
+                        EndPointKeys = Configuration["AppSettings:QnAMaker:QnAMethods:endpointkeys"]
                     }
                 };
             });

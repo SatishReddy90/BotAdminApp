@@ -90,3 +90,12 @@ body {
         transform: rotate(360deg);
     }
 }
+
+#loginModal {
+    opacity: 1;
+    padding: 100px;
+}
+
+.info-btn{
+    cursor:pointer;
+}
