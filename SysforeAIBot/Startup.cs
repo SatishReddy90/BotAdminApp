@@ -16,6 +16,7 @@ using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using SysforeAIBot.Extensions;
 using SysforeAIBot.Models;
 using SysforeAIBot.NlpDispatch;
 
@@ -29,7 +30,7 @@ namespace SysforeAIBot
         private ILoggerFactory _loggerFactory;
         private bool _isProduction = false;
 
-        public Startup(IHostingEnvironment env)
+        public Startup(IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
             var builder = new ConfigurationBuilder()
                 .SetBasePath(env.ContentRootPath)
@@ -38,6 +39,7 @@ namespace SysforeAIBot
                 .AddEnvironmentVariables();
 
             Configuration = builder.Build();
+            _loggerFactory = loggerFactory;
         }
 
         /// <summary>
@@ -57,250 +59,36 @@ namespace SysforeAIBot
         /// <seealso cref="https://docs.microsoft.com/en-us/azure/bot-service/bot-service-manage-channels?view=azure-bot-service-4.0"/>
         public void ConfigureServices(IServiceCollection services)
         {
-            var secretKey = Configuration.GetSection("botFileSecret")?.Value;
-            var botFilePath = Configuration.GetSection("botFilePath")?.Value;
-            if (!File.Exists(botFilePath))
-            {
-                throw new FileNotFoundException($"The .bot configuration file was not found. botFilePath: {botFilePath}");
-            }
-
-            // Loads .bot configuration file and adds a singleton that your Bot can access through dependency injection.
-            var botConfig = BotConfiguration.Load(botFilePath ?? @".\SysforeAIBot.bot", secretKey);
-            services.AddSingleton(sp => botConfig ?? throw new InvalidOperationException($"The .bot configuration file could not be loaded. botFilePath: {botFilePath}"));
-
-            // Retrieve current endpoint.
-            var environment = _isProduction ? "production" : "development";
-            var service = botConfig.Services.FirstOrDefault(s => s.Type == "endpoint" && s.Name == environment);
-            if (!(service is EndpointService endpointService))
-            {
-                throw new InvalidOperationException($"The .bot file does not contain an endpoint with name '{environment}'.");
-            }
-
-            var connectedServices = InitBotServices(botConfig);
-
-            services.AddSingleton(sp => connectedServices);
-
-            services.AddBot<SysforeAIBotBot>(options =>
-            {
-
-                options.CredentialProvider = new SimpleCredentialProvider(endpointService.AppId, endpointService.AppPassword);
-
-                // Creates a logger for the application to use.
-                ILogger logger = _loggerFactory.CreateLogger<SysforeAIBotBot>();
-
-                // Catches any errors that occur during a conversation turn and logs them.
-                options.OnTurnError = async (context, exception) =>
-                {
-                    logger.LogError($"Exception caught : {exception}");
-                    await context.SendActivityAsync("Sorry, it looks like something went wrong.");
-                };
-
-                // The Memory Storage used here is for local bot debugging only. When the bot
-                // is restarted, everything stored in memory will be gone.
-                IStorage dataStore = new MemoryStorage();
-
-                // For production bots use the Azure Blob or
-                // Azure CosmosDB storage providers. For the Azure
-                // based storage providers, add the Microsoft.Bot.Builder.Azure
-                // Nuget package to your solution. That package is found at:
-                // https://www.nuget.org/packages/Microsoft.Bot.Builder.Azure/
-                // Uncomment the following lines to use Azure Blob Storage
-                // //Storage configuration name or ID from the .bot file.
-                // const string StorageConfigurationId = "<STORAGE-NAME-OR-ID-FROM-BOT-FILE>";
-                // var blobConfig = botConfig.FindServiceByNameOrId(StorageConfigurationId);
-                // if (!(blobConfig is BlobStorageService blobStorageConfig))
-                // {
-                //    throw new InvalidOperationException($"The .bot file does not contain an blob storage with name '{StorageConfigurationId}'.");
-                // }
-                // // Default container name.
-                // const string DefaultBotContainer = "<DEFAULT-CONTAINER>";
-                // var storageContainer = string.IsNullOrWhiteSpace(blobStorageConfig.Container) ? DefaultBotContainer : blobStorageConfig.Container;
-                // IStorage dataStore = new Microsoft.Bot.Builder.Azure.AzureBlobStorage(blobStorageConfig.ConnectionString, storageContainer);
-
-                // Create Conversation State object.
-                // The Conversation State object is where we persist anything at the conversation-scope.
-                var conversationState = new ConversationState(dataStore);
-
-                options.State.Add(conversationState);
-            });
-
+            services.ConfigureBot(Configuration, _loggerFactory, _isProduction);
+            services.ConfigureWritable<AppSettings>(Configuration.GetSection("AppSettings"));
+            services.ConfigureAppSettings(Configuration);
             // Create and register state accessors.
             // Accessors created here are passed into the IBot-derived class on every turn.
-            services.AddSingleton<SysforeAIBotAccessors>(sp =>
+            services.ConfigureConversationStateAccessors();
+
+            services.ConfigureCors();
+
+            services.AddMvc();
+
+            services.ConfigureSwagger();
+
+            services.AddSingleton(services);
+        }
+
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        {
+            app.UseCors("CorsPolicy");
+            app.UseDefaultFiles()
+                .UseStaticFiles()
+                .UseBotFramework()
+                .UseMvc();
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                //var options = sp.GetRequiredService<IOptions<BotFrameworkOptions>>().Value;
-                //if (options == null)
-                //{
-                //    throw new InvalidOperationException("BotFrameworkOptions must be configured prior to setting up the state accessors");
-                //}
-
-                //var conversationState = options.State.OfType<ConversationState>().FirstOrDefault();
-                //if (conversationState == null)
-                //{
-                //    throw new InvalidOperationException("ConversationState must be defined and added before adding conversation-scoped state accessors.");
-                //}
-
-                IStorage storage = new MemoryStorage();
-                ConversationState conversationState = new ConversationState(storage);
-                UserState userState = new UserState(storage);
-                // Create the custom state accessor.
-                // State accessors enable other components to read and write individual properties of state.
-                var accessors = new SysforeAIBotAccessors(conversationState, userState)
-                {
-                    ConversationFlowAccessor = conversationState.CreateProperty<ConversationFlow>(SysforeAIBotAccessors.ConversationFlowName),
-                    UserProfileAccessor = userState.CreateProperty<UserProfile>(SysforeAIBotAccessors.UserProfileName)
-                };
-
-                return accessors;
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sysfore API V1");
             });
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
-        {
-            _loggerFactory = loggerFactory;
-            app.UseDefaultFiles()
-                .UseStaticFiles()
-                .UseBotFramework();
-        }
-
-        /// <summary>
-        /// Initialize the bot's references to external services.
-        ///
-        /// For example, QnaMaker services are created here.
-        /// These external services are configured
-        /// using the <see cref="BotConfiguration"/> class (based on the contents of your ".bot" file).
-        /// </summary>
-        /// <param name="config"><see cref="BotConfiguration"/> object based on your ".bot" file.</param>
-        /// <returns>A <see cref="BotServices"/> representing client objects to access external services the bot uses.</returns>
-        /// <seealso cref="BotConfiguration"/>
-        /// <seealso cref="QnAMaker"/>
-        /// <seealso cref="TelemetryClient"/>
-        private static BotServices InitBotServices(BotConfiguration config)
-        {
-            var qnaServices = new Dictionary<string, QnAMaker>();
-            LuisRecognizer luisRecignizerService = null;
-            List<string> Intents = config.Properties["LuisIntents"].ToObject<List<string>>();
-            foreach (var service in config.Services)
-            {
-                switch (service.Type)
-                {
-                    case ServiceTypes.Luis:
-                        {
-                            // Create a Luis Recognizer that is initialized and suitable for passing
-                            // into the IBot-derived class (NlpDispatchBot).
-                            // In this case, we're creating a custom class (wrapping the original
-                            // Luis Recognizer client) that logs the results of Luis Recognizer results
-                            // into Application Insights for future analysis.
-                            if (!(service is LuisService luis))
-                            {
-                                throw new InvalidOperationException("The LUIS service is not configured correctly in your '.bot' file.");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(luis.AppId))
-                            {
-                                throw new InvalidOperationException("The LUIS Model Application Id ('appId') is required to run this sample. Please update your '.bot' file.");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(luis.AuthoringKey))
-                            {
-                                throw new InvalidOperationException("The Luis Authoring Key ('authoringKey') is required to run this sample. Please update your '.bot' file.");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(luis.SubscriptionKey))
-                            {
-                                throw new InvalidOperationException("The Subscription Key ('subscriptionKey') is required to run this sample. Please update your '.bot' file.");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(luis.Region))
-                            {
-                                throw new InvalidOperationException("The Region ('region') is required to run this sample. Please update your '.bot' file.");
-                            }
-
-                            var app = new LuisApplication(luis.AppId, luis.AuthoringKey, luis.GetEndpoint());
-                            luisRecignizerService = new LuisRecognizer(app);
-                            break;
-                        }
-
-                    case ServiceTypes.Dispatch:
-                        // Create a Dispatch Recognizer that is initialized and suitable for passing
-                        // into the IBot-derived class (NlpDispatchBot).
-                        // In this case, we're creating a custom class (wrapping the original
-                        // Luis Recognizer client) that logs the results of Luis Recognizer results
-                        // into Application Insights for future analysis.
-                        if (!(service is DispatchService dispatch))
-                        {
-                            throw new InvalidOperationException("The Dispatch service is not configured correctly in your '.bot' file.");
-                        }
-
-                        if (string.IsNullOrWhiteSpace(dispatch.AppId))
-                        {
-                            throw new InvalidOperationException("The LUIS Model Application Id ('appId') is required to run this sample. Please update your '.bot' file.");
-                        }
-
-                        if (string.IsNullOrWhiteSpace(dispatch.AuthoringKey))
-                        {
-                            throw new InvalidOperationException("The LUIS Authoring Key ('authoringKey') is required to run this sample. Please update your '.bot' file.");
-                        }
-
-                        if (string.IsNullOrWhiteSpace(dispatch.SubscriptionKey))
-                        {
-                            throw new InvalidOperationException("The Subscription Key ('subscriptionKey') is required to run this sample. Please update your '.bot' file.");
-                        }
-
-                        if (string.IsNullOrWhiteSpace(dispatch.Region))
-                        {
-                            throw new InvalidOperationException("The Region ('region') is required to run this sample. Please update your '.bot' file.");
-                        }
-
-                        var dispatchApp = new LuisApplication(dispatch.AppId, dispatch.AuthoringKey, dispatch.GetEndpoint());
-
-                        // Since the Dispatch tool generates a LUIS model, we use LuisRecognizer to resolve dispatching of the incoming utterance
-                        var dispatchARecognizer = new LuisRecognizer(dispatchApp);
-                        luisRecignizerService = new LuisRecognizer(dispatchApp);
-                        break;
-
-                    case ServiceTypes.QnA:
-                        {
-                            // Create a QnA Maker that is initialized and suitable for passing
-                            // into the IBot-derived class (NlpDispatchBot).
-                            // In this case, we're creating a custom class (wrapping the original
-                            // QnAMaker client) that logs the results of QnA Maker into Application
-                            // Insights for future analysis.
-                            if (!(service is QnAMakerService qna))
-                            {
-                                throw new InvalidOperationException("The QnA service is not configured correctly in your '.bot' file.");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(qna.KbId))
-                            {
-                                throw new InvalidOperationException("The QnA KnowledgeBaseId ('kbId') is required to run this sample. Please update your '.bot' file.");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(qna.EndpointKey))
-                            {
-                                throw new InvalidOperationException("The QnA EndpointKey ('endpointKey') is required to run this sample. Please update your '.bot' file.");
-                            }
-
-                            if (string.IsNullOrWhiteSpace(qna.Hostname))
-                            {
-                                throw new InvalidOperationException("The QnA Host ('hostname') is required to run this sample. Please update your '.bot' file.");
-                            }
-
-                            var qnaEndpoint = new QnAMakerEndpoint()
-                            {
-                                KnowledgeBaseId = qna.KbId,
-                                EndpointKey = qna.EndpointKey,
-                                Host = qna.Hostname,
-                            };
-
-                            var qnaMaker = new QnAMaker(qnaEndpoint);
-                            qnaServices.Add(qna.Name, qnaMaker);
-
-                            break;
-                        }
-                }
-            }
-            return new BotServices(luisRecignizerService, qnaServices, Intents);
-        }
+        
     }
 }

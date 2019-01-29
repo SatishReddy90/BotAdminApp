@@ -17,30 +17,10 @@
       "endpoint": "https://sysforeaibot.azurewebsites.net/api/messages",
       "id": "2",
       "name": "production"
-    },
-    {
-      "type": "dispatch",
-      "name": "LuisBot",
-      "appId": "99efef81-bfcb-4e38-acfe-7a0d797ef30f",
-      "version": "0.1",
-      "authoringKey": "6dd8bc4c9adc493698db8f7db46b3cb9",
-      "subscriptionKey": "6dd8bc4c9adc493698db8f7db46b3cb9",
-      "region": "westus",
-      "id": "3"
-    },
-    {
-      "type": "qna",
-      "name": "SysforeIntegration",
-      "KbId": "6d33b15b-022f-46c4-ad28-56880e00797b",
-      "subscriptionKey": "", // Used when creating your QnA service.
-      "endpointKey": "2c66a8d4-27e4-4374-904d-13acfe36841a",
-      "hostname": "https://sysforewebsitebotqna.azurewebsites.net/qnamaker",
-      "id": "4"
     }
   ],
   "padlock": "",
   "version": "2.0",
   "path": "C:\\Users\\jishnu.t\\Documents\\SysforeAIBot\\SysforeAIBot.bot",
-  "overrides": null,
-  "LuisIntents": [ "Greeting", "LeadGeneration", "EndOfConversation" ]
+  "overrides": null
 }

@@ -17,37 +17,28 @@ namespace SysforeAIBot
     public class BotServices
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="BotServices"/> class.
-        /// </summary>
-        /// <param name="qnaServices">A dictionary of named <see cref="QnAMaker"/> instances for usage within the bot.</param>
-        /// <param name="luisRecognizer">A <see cref="LuisRecognizer"/> instance for usage within the bot</param>
-        public BotServices(LuisRecognizer luisRecognizer, Dictionary<string, QnAMaker> qnaServices, List<string> Luis_Intents)
-        {
-            QnAServices = qnaServices ?? throw new ArgumentNullException(nameof(qnaServices));
-            LuisRecognizerService = luisRecognizer;
-            Intents = Luis_Intents;
-        }
-
-        /// <summary>
-        /// Gets the (potential) set of QnA Services used.
+        /// Gets or sets the (potential) set of QnA Services used.
         /// Given there can be multiple QnA services used in a single bot,
         /// QnA is represented as a Dictionary. This is also modeled in the
-        /// ".bot" file since the elements are named (string).
+        /// "appsettings.json" file since the elements are named (string).
         /// This sample only uses a single QnA instance.
         /// </summary>
         /// <value>
-        /// A QnAMaker client instance created based on configuration in the .bot file.
+        /// A QnAMaker client instance created based on configuration in the appsettings.json file.
         /// </value>
-        public Dictionary<string, QnAMaker> QnAServices { get; } = new Dictionary<string, QnAMaker>();
+        public Dictionary<string, QnAMaker> QnAServices { get; set; } = new Dictionary<string, QnAMaker>();
 
         /// <summary>
-        /// Gets the Luis recognizer service used.
+        /// Gets or sets the Luis recognizer service used.
         /// </summary>
         /// <value>
-        /// A <see cref="LuisRecognizer"/> client instance created based on configuration in the .bot file.
+        /// A <see cref="LuisRecognizer"/> client instance created based on configuration in the appsettings.json file.
         /// </value>
-        public LuisRecognizer LuisRecognizerService { get; }
+        public LuisRecognizer LuisRecognizerService { get; set; }
 
+        /// <summary>
+        /// Gets or sets the list of luis intents.
+        /// </summary>
         public List<string> Intents { get; set; }
     }
 }
