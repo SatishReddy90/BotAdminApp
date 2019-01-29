@@ -7,10 +7,10 @@ namespace SysforeAIBot.DTO
 {
     public class QnAServicesInput
     {
-        public List<QnaService> qnaServices { get; set; }
+        public List<QnaServiceInfo> qnaServices { get; set; }
     }
 
-    public class QnaService
+    public class QnaServiceInfo
     {
         public string type { get; set; }
         public string endpointKey { get; set; }
