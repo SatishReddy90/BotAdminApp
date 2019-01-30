@@ -47,6 +47,10 @@ namespace AdminBot
                         EndPointKeys = Configuration["AppSettings:QnAMaker:QnAMethods:endpointkeys"]
                     }
                 };
+                options.BotApi = new BotApi()
+                {
+                    BaseUrl = Configuration["AppSettings:BotApi:BaseUrl"]
+                };
             });
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }

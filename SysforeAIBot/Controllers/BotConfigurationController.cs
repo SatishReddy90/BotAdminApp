@@ -55,7 +55,6 @@ namespace SysforeAIBot.Controllers
                     subscriptionKey = luisAppInput.subscriptionKey,
                     version = luisAppInput.version
                 };
-                //opt.luisIntents = new List<string>() { "l_SampleQnA", "l_TestQnA" };
             });
             return NoContent();
         }
@@ -109,6 +108,51 @@ namespace SysforeAIBot.Controllers
                 opt.luisIntents = luisIntentsInput.LuisIntents;
             });
             return NoContent();
+        }
+
+        [HttpDelete("DeleteQnaService")]
+        [ProducesResponseType(400)]
+        public IActionResult DeleteQnaService([FromQuery]string kbid)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(400);
+
+            if(_appSettings.qnaServices.Exists(x => x.kbId == kbid))
+            {
+                _appSettings.qnaServices.RemoveAt(_appSettings.qnaServices.FindIndex(x => x.kbId == kbid));
+            }
+            else
+            {
+                return NotFound($"No knowledge base found with kbid =  {kbid} to delete. Please use valid kbid");
+            }
+            
+            _writeOptions.Update(opt => {
+                opt.qnaServices = _appSettings.qnaServices;
+            });
+            return NoContent();
+        }
+
+        [HttpPost("AddQna")]
+        [ProducesResponseType(400)]
+        public IActionResult AddQna([FromBody]QnaServiceInfo qnaServiceInfo)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(400);
+            _writeOptions.Update(opt =>
+            {
+                QnaService qnaService = new QnaService()
+                {
+                    type = qnaServiceInfo.type,
+                    endpointKey = qnaServiceInfo.endpointKey,
+                    hostname = qnaServiceInfo.hostname,
+                    id = qnaServiceInfo.id,
+                    kbId = qnaServiceInfo.kbId,
+                    name = qnaServiceInfo.name,
+                    subscriptionKey = qnaServiceInfo.subscriptionKey
+                };
+                opt.qnaServices.Add(qnaService);
+            });
+            return Created("/api/BotConfiguration/AddQna", qnaServiceInfo);
         }
 
         /// <summary>

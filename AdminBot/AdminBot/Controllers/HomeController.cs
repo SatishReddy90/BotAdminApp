@@ -26,11 +26,12 @@ namespace AdminBot.Controllers
             ViewData["QnASubScriptionKey"] = _appSettings.QnAMaker.SubscriptionKey;
             ViewData["QnAEndpointkeyUrl"] = _appSettings.QnAMaker.Host + _appSettings.QnAMaker.Service + _appSettings.QnAMaker.Methods.EndPointKeys;
             ViewData["QnAGetUrl"] = _appSettings.QnAMaker.Host + _appSettings.QnAMaker.Service + _appSettings.QnAMaker.Methods.Get;
+            ViewData["BotBaseUrl"] = _appSettings.BotApi.BaseUrl;
             try
             {
                 KBHelper kBHelper = new KBHelper(_appSettings);
-                RootObject rootObject = await kBHelper.GetKBsByUser();
-                return View(rootObject.knowledgebases);
+                KnowledgebaseResponse response = await kBHelper.GetKBsByUser();
+                return View(response.knowledgebases);
             }
             catch(Exception ex)
             {

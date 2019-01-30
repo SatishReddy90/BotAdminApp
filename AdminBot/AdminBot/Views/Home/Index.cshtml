@@ -74,9 +74,10 @@
                 <th>
                     @Html.DisplayNameFor(model => model.HostName)
                 </th>
-                <th>Info</th>
-                <th>Edit</th>
-                <th>Delete</th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -94,6 +95,16 @@
                 </td>
                 <td>
                     @Html.DisplayFor(modelItem => item.HostName)
+                </td>
+                <td>
+                    @if (item.IsEnabled)
+                    {
+                        <button type="button" class="btn btn-danger" onclick="disableKB('@item.Id')">Disable</button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-success" onclick="enableKB('@item.Id')">Enable</button>
+                    }
                 </td>
                 <td>
                     <button type="button" class="btn btn-info" onclick="viewKBInfo('@item.Id')">Info</button>
@@ -123,7 +134,11 @@
 <script type="text/javascript">
     var requestUrl = "@ViewData["QnADeleteUrl"]";
     var subkey = "@ViewData["QnASubScriptionKey"]";
+    var endpointKeyUrl = "@ViewData["QnAEndpointkeyUrl"]";
+    var qnaGetUrl = "@ViewData["QnAGetUrl"]";
+    var botBaseUrl = "@ViewData["BotBaseUrl"]";
     var _kbid = "";
+    var model = @Html.Raw(Json.Serialize(Model));
 
     function confirmDeleteModal(kbid) {
         _kbid = kbid;
@@ -165,7 +180,7 @@
 
     function viewKBInfo(kbid) {
         $.ajax({
-            url: "@ViewData["QnAEndpointkeyUrl"]",
+            url: endpointKeyUrl,
             beforeSend: function (xhrObj) {
                 // Request headers
                 xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
@@ -175,7 +190,7 @@
         })
             .done(function (endpointResponse) {
                 $.ajax({
-                    url: "@ViewData["QnAGetUrl"]" + "/" + kbid,
+                    url: qnaGetUrl + "/" + kbid,
                     beforeSend: function (xhrObj) {
                         // Request headers
                         xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
@@ -200,5 +215,76 @@
                 hideLoader();
             });
        
+    }
+    function disableKB(kbid) {
+        displayLoader();
+        $.ajax({
+            url: botBaseUrl + "/api/BotConfiguration/DeleteQnaService?kbid=" + kbid,
+            method: "DELETE",
+            //data: { "kbid": kbid },
+            dataTye: "application/json"
+        })
+            .done(function (data, textStatus, jqXHR) {
+                toastr.success("The knowledge base has been disabled successfully!");
+                window.location.href = "/";
+            })
+            .fail(function (response) {
+                toastr.error(response.responseText, response.statusText);
+            })
+            .always(function () {
+                hideLoader();
+            });
+    }
+
+    function enableKB(item) {
+        displayLoader();
+        var qnaArray = $.grep(model, function (n, i) {
+            return n.id === item;
+        });
+        if (qnaArray.length > 0) {
+            var qnaModel = qnaArray[0];
+            var qnaServiceInfo = {
+                type: "qna",
+                hostName: qnaModel.hostName,
+                kbId: qnaModel.id,
+                name: qnaModel.name,
+                subscriptionKey: subkey
+            };
+            $.ajax({
+                url: endpointKeyUrl,
+                beforeSend: function (xhrObj) {
+                    // Request headers
+                    xhrObj.setRequestHeader("Ocp-Apim-Subscription-Key", subkey);
+                },
+                type: "GET",
+
+            })
+                .done(function (endpointResponse) {
+                    qnaServiceInfo.endpointKey = endpointResponse.primaryEndpointKey;
+                    addQnaToBot(qnaServiceInfo);
+                })
+                .fail(function (response) {
+                    toastr.error(response.responseText, response.statusText);
+                    hideLoader();
+                });
+        }
+    }
+    function addQnaToBot(qnaServiceInfo) {
+        $.ajax({
+            url: botBaseUrl + "/api/BotConfiguration/AddQna",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(qnaServiceInfo)
+        })
+            .done(function (response) {
+                toastr.success("The knowledge base has been enabled successfully!");
+                window.location.href = "/";
+            })
+            .fail(function (response) {
+                toastr.error(response.responseText, response.statusText);
+            })
+            .always(function () {
+                hideLoader();
+            });
     }
 </script>

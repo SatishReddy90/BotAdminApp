@@ -21,9 +21,9 @@ namespace AdminBot.Models
         public string UserId { get; set; }
         public List<string> Urls { get; set; }
         public List<string> Sources { get; set; }
-
+        public bool IsEnabled { get; set; }
     }
-    public class RootObject
+    public class KnowledgebaseResponse
     {
         public List<Knowledgebase> knowledgebases { get; set; }
     }

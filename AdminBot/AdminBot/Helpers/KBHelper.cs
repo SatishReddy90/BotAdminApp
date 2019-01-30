@@ -36,11 +36,21 @@ namespace AdminBot.Helpers
             }
         }
 
-        public async Task<RootObject> GetKBsByUser()
+        public async Task<KnowledgebaseResponse> GetKBsByUser()
         {
             var uri = _appSettings.QnAMaker.Host + _appSettings.QnAMaker.Service + _appSettings.QnAMaker.Methods.Get;
             var response = await Get(uri);
-            return JObject.Parse(response).ToObject<RootObject>();
+            var botResponse = await GetKbsFromBot();
+            var botConfigDetails = JsonConvert.DeserializeObject<BotConfigDetails>(botResponse);
+            var kbResponse = JObject.Parse(response).ToObject<KnowledgebaseResponse>();
+            if (botConfigDetails != null && botConfigDetails.qnaServices != null)
+            {
+                foreach (var item in kbResponse.knowledgebases)
+                {
+                    item.IsEnabled = botConfigDetails.qnaServices.Exists(qna => qna.kbId == item.Id);
+                }
+            }
+            return kbResponse;
         }
 
         public async Task<Knowledgebase> GetKB(string kb)
@@ -48,6 +58,19 @@ namespace AdminBot.Helpers
             var uri = _appSettings.QnAMaker.Host + _appSettings.QnAMaker.Service + _appSettings.QnAMaker.Methods.Get + "/" + kb;
             var response = await Get(uri);
             return JsonConvert.DeserializeObject<Knowledgebase>(response);
+        }
+
+        public async Task<string> GetKbsFromBot()
+        {
+            string uri = "http://localhost:9632/api/BotConfiguration";
+            using (var client = new HttpClient())
+            using (var request = new HttpRequestMessage())
+            {
+                request.Method = HttpMethod.Get;
+                request.RequestUri = new Uri(uri);
+                var response = await client.SendAsync(request);
+                return await response.Content.ReadAsStringAsync();
+            }
         }
         #endregion
 

@@ -8,6 +8,7 @@ namespace AdminBot.Helpers
     public class AppSettings
     {
         public QnAMaker QnAMaker { get; set; }
+        public BotApi BotApi { get; set; }
     }
 
     public class QnAMaker
@@ -25,5 +26,10 @@ namespace AdminBot.Helpers
         public string Delete { get; set; }
         public string Get { get; set; }
         public string EndPointKeys { get; set; }
+    }
+
+    public class BotApi
+    {
+        public string BaseUrl { get; set; }
     }
 }
