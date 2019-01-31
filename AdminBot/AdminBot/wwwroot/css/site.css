@@ -99,3 +99,13 @@ body {
 .info-btn{
     cursor:pointer;
 }
+
+#dialog-tree{
+    padding-top:20px;
+}
+
+.node-modal-info{
+    font-weight:bold;
+    font-style:italic;
+    margin-bottom: 10px;
+}

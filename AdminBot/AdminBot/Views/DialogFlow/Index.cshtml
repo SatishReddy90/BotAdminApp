@@ -1,0 +1,239 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+    ViewData["Title"] = "Dialog Flow";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/themes/default/style.min.css" />
+}
+
+<h4>Dialog Flow</h4>
+<div id="dialog-tree"></div>
+
+
+<span id="selected-node"></span>
+<div class="modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Dialog Flow</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                @*<div class="form-group">
+            <label for="opt">Option:</label>
+            <input type="text" class="form-control" id="opt">
+        </div>
+        <div class="form-group">
+            <label for="next-qstn">Next Question:</label>
+            <input type="text" class="form-control" id="next-qstn">
+        </div>*@
+                <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="pills-add-tab" data-toggle="pill" href="#pills-add" role="tab" aria-controls="pills-add" aria-selected="true">Add Node</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="pills-update-tab" data-toggle="pill" href="#pills-update" role="tab" aria-controls="pills-update" aria-selected="false">Update Node</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="pills-delete-tab" data-toggle="pill" href="#pills-delete" role="tab" aria-controls="pills-delete" aria-selected="false">Delete Node</a>
+                    </li>
+                </ul>
+                <div class="tab-content" id="pills-tabContent">
+                    <div class="tab-pane fade show active" id="pills-add" role="tabpanel" aria-labelledby="pills-add-tab">
+                        <div class="node-modal-info">
+                            A new node will be added as a child to the selected node.
+                        </div>
+                        <div class="form-group">
+                            <label for="opt-add">Option:</label>
+                            <input type="text" class="form-control" id="opt-add">
+                        </div>
+                        <div class="form-group">
+                            <label for="next-qstn-add">Next Question:</label>
+                            <input type="text" class="form-control" id="next-qstn-add">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="addNode()">Add</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                    <div class="tab-pane fade" id="pills-update" role="tabpanel" aria-labelledby="pills-update-tab">
+                        <div class="node-modal-info">
+                            The selected node will be updated with the provided values.
+                        </div>
+                        <div class="form-group">
+                            <label for="opt-update">Option:</label>
+                            <input type="text" class="form-control" id="opt-update">
+                        </div>
+                        <div class="form-group">
+                            <label for="next-qstn-update">Next Question:</label>
+                            <input type="text" class="form-control" id="next-qstn-update">
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="updateNode()">Update</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                    <div class="tab-pane fade" id="pills-delete" role="tabpanel" aria-labelledby="pills-delete-tab">
+                        <div class="node-modal-info">
+                            The selected node and all the associated child nodes will be deleted from the tree.
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="deleteNode()">Delete</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+            @*<div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="addNode()">Save changes</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>*@
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
+    <script>
+
+        var flowData;
+        var treeDataArray = [];
+        var node;
+
+        $.getJSON('question-flow-config.json', function (data) {
+            flowData = data;
+            console.log(flowData);
+            treeDataArray.push(getTreeData(flowData));
+            console.log(treeDataArray);
+            $('#dialog-tree')
+                .on("changed.jstree", function (e, data) {
+                    node=data.instance.get_node(data.selected[0]);
+                    $('.modal').modal();
+                })
+                .jstree({
+                    'core': {
+                        'data': treeDataArray,
+                        'check_callback': true
+                    }
+                });
+        });
+
+        function getTreeData(flowData) {
+            if (flowData == null) {
+                return null;
+            }
+            var treeData = {
+                "text": "(" + flowData.answer + ") " + flowData.question,
+                "state": { "opened": true },
+                "icon": false,
+                "children": []
+            };
+            for (var i = 0; i < flowData.branches.length; i++) {
+                treeData.children.push(getTreeData(flowData.branches[i]));
+            }
+
+            return treeData;
+        }
+
+        function attachNode(parent, node, tree) {
+            if ("(" + tree.answer + ") " + tree.question == parent) {
+                tree.branches.push(node);
+                return;
+            }
+            for (var i = 0; i < tree.branches.length; i++) {
+                attachNode(parent, node, tree.branches[i]);
+            }
+        }
+
+        function updateFlowDataNode(question, updatedNode, tree) {
+            if ("(" + tree.answer + ") " + tree.question == question) {
+                tree.question = updatedNode.question;
+                tree.answer = updatedNode.answer;
+                return;
+            }
+            for (var i = 0; i < tree.branches.length; i++) {
+                updateFlowDataNode(question, updatedNode, tree.branches[i]);
+            }
+        }
+
+        function deleteFlowDataNode(question, node, parentNode, index) {
+            if ("(" + node.answer + ") " + node.question == question) {
+                //delete node from parentNode
+                parentNode.branches.splice(index, 1);
+                return;
+            }
+            for (var i = 0; i < node.branches.length; i++) {
+                deleteFlowDataNode(question, node.branches[i], node, i);
+            }
+        }
+
+
+        function addNode() {
+            //node.text="test";
+            //$('#selected-node').text(node.text);
+            var answer = $('#opt-add').val();
+            var question = $('#next-qstn-add').val();
+
+            var flowDataNode = {
+                "answer": answer,
+                "question": question,
+                "branches": []
+            };
+
+            var treeDataNode = {
+                "text": "(" + answer + ")" + " " + question,
+                "state": { "opened": true },
+                "icon": false,
+                "children": []
+            };
+
+            attachNode(node.text, flowDataNode, flowData);
+            var id = $.jstree.reference('#dialog-tree').create_node(node, treeDataNode);
+
+            console.log(id);
+            console.log(flowData);
+            $('.modal').modal('hide');
+            //$.jstree.reference('#dialog-tree').load_all();
+        }
+
+        function updateNode() {
+            var answer = $('#opt-update').val();
+            var question = $('#next-qstn-update').val();
+
+            var flowDataNode = {
+                "answer": answer,
+                "question": question
+            };
+
+            //var treeDataNode = {
+            //    "text": "(" + answer + ")" + " " + question,
+            //    "state": { "opened": true },
+            //    "icon": false,
+            //    "children": []
+            //};
+
+            updateFlowDataNode(node.text, flowDataNode, flowData);
+            $.jstree.reference('#dialog-tree').rename_node(node, "(" + answer + ") " + question);
+
+            console.log(flowData);
+            $('.modal').modal('hide');
+        }
+
+        function deleteNode() {
+
+            if (node.parent == '#') {
+                toastr.error('Root node cannot be deleted.');
+                return;
+            }
+
+            deleteFlowDataNode(node.text, flowData, null, null);
+            $.jstree.reference('#dialog-tree').delete_node(node);
+
+            console.log(flowData);
+            $('.modal').modal('hide');
+        }
+
+
+    </script>
+
+}

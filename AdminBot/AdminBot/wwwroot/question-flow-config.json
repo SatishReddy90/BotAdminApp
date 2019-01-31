@@ -1,0 +1,48 @@
+{
+  "answer": null,
+  "question": "Please choose an option",
+  "branches": [
+    {
+      "answer": "About",
+      "question": "Who are you?",
+      "branches": []
+    },
+    {
+      "answer": "Cloud Services",
+      "question": "Cool. What kind of Cloud Services?",
+      "branches": [
+        {
+          "answer": "Cloud Service A",
+          "question": "Cloud Service A question in KB?",
+          "branches": []
+        },
+        {
+          "answer": "Cloud Service B",
+          "question": "Cloud Service B question in KB?",
+          "branches": []
+        }
+      ]
+    },
+    {
+      "answer": "IT Outsourcing Services",
+      "question": "Cool. What kind of IT Outsourcing Services?",
+      "branches": [
+        {
+          "answer": "IT Outsourcing Service A",
+          "question": "IT Outsourcing Service A question in KB?",
+          "branches": []
+        },
+        {
+          "answer": "IT Outsourcing Service B",
+          "question": "IT Outsourcing Service B question in KB?",
+          "branches": []
+        },
+        {
+          "answer": "IT Outsourcing Service C",
+          "question": "IT Outsourcing Service C question in KB?",
+          "branches": []
+        }
+      ]
+    }
+  ]
+}
