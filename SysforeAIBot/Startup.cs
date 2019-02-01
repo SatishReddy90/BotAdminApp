@@ -61,6 +61,7 @@ namespace SysforeAIBot
         {
             services.ConfigureBot(Configuration, _loggerFactory, _isProduction);
             services.ConfigureWritable<AppSettings>(Configuration.GetSection("AppSettings"));
+            services.ConfigureWritable<DialogFlow>(Configuration.GetSection("DialogFlow"));
             services.ConfigureAppSettings(Configuration);
             // Create and register state accessors.
             // Accessors created here are passed into the IBot-derived class on every turn.

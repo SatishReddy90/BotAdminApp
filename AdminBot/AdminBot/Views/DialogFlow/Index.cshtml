@@ -10,10 +10,11 @@
 }
 
 <h4>Dialog Flow</h4>
+<div>
+    <button type="button" class="btn btn-primary float-right" id="btn-extract" onclick="saveChanges()">Save Changes</button>
+</div>
 <div id="dialog-tree"></div>
 
-
-<span id="selected-node"></span>
 <div class="modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -90,33 +91,74 @@
         </div>
     </div>
 </div>
+<div id="loader"></div>
 
 @section Scripts{
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.2.1/jstree.min.js"></script>
     <script>
-
+        var botBaseUrl = "@ViewData["BotBaseUrl"]";
         var flowData;
         var treeDataArray = [];
         var node;
 
-        $.getJSON('question-flow-config.json', function (data) {
-            flowData = data;
-            console.log(flowData);
-            treeDataArray.push(getTreeData(flowData));
-            console.log(treeDataArray);
-            $('#dialog-tree')
-                .on("changed.jstree", function (e, data) {
-                    node=data.instance.get_node(data.selected[0]);
-                    $('.modal').modal();
+        //$.getJSON('question-flow-config.json', function (data) {
+        //    flowData = data;
+        //    console.log(flowData);
+        //    treeDataArray.push(getTreeData(flowData));
+        //    console.log(treeDataArray);
+        //    $('#dialog-tree')
+        //        .on("changed.jstree", function (e, data) {
+        //            node=data.instance.get_node(data.selected[0]);
+        //            $('.modal').modal();
+        //        })
+        //        .jstree({
+        //            'core': {
+        //                'data': treeDataArray,
+        //                'check_callback': true
+        //            }
+        //        });
+        //});
+        loadData();
+
+        function loadData() {
+            displayLoader();
+            $.ajax({
+                url: botBaseUrl + "api/BotConfiguration/GetDialogFlowDetails",
+                type: "GET"
+            })
+                .done(function (data) {
+                    flowData = data;
+                    console.log(flowData);
+                    treeDataArray.push(getTreeData(flowData));
+                    console.log(treeDataArray);
+                    $('#dialog-tree')
+                        .on("changed.jstree", function (e, data) {
+                            node = data.instance.get_node(data.selected[0]);
+                            $('.modal').modal();
+                        })
+                        .jstree({
+                            'core': {
+                                'data': treeDataArray,
+                                'check_callback': true
+                            }
+                        });
                 })
-                .jstree({
-                    'core': {
-                        'data': treeDataArray,
-                        'check_callback': true
-                    }
+                .fail(function (error) {
+                    toastr.error(error.responseText, error.statusText);
+                })
+                .always(function () {
+                    hideLoader();
                 });
-        });
+        }
+        
+
+        function displayLoader() {
+            $('#loader').addClass("loader");
+        }
+        function hideLoader() {
+            $('#loader').removeClass("loader");
+        }
 
         function getTreeData(flowData) {
             if (flowData == null) {
@@ -233,6 +275,26 @@
             $('.modal').modal('hide');
         }
 
+        function saveChanges() {
+            displayLoader();
+            $.ajax({
+                url: botBaseUrl + "/api/BotConfiguration/UpdateDialogFlow",
+                method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify(flowData)
+            })
+                .done(function (response) {
+                    toastr.success("Changes saved successfully!");
+                    //window.location.href = "/";
+                })
+                .fail(function (response) {
+                    toastr.error(response.responseText, response.statusText);
+                })
+                .always(function () {
+                    hideLoader();
+                    loadData();
+                });
+        }
 
     </script>
 

@@ -20,14 +20,20 @@ namespace SysforeAIBot.Controllers
     {
         private readonly IWritableOptions<AppSettings> _writeOptions;
         public AppSettings _appSettings { get; set; }
+        private readonly IWritableOptions<DialogFlow> _dialogFlowWriteOptions;
+        public DialogFlow _dialogFlow { get; set; }
 
         public BotConfigurationController(
             IWritableOptions<AppSettings> writeOptions,
-            IOptionsSnapshot<AppSettings> appSettings
+            IOptionsSnapshot<AppSettings> appSettings,
+            IWritableOptions<DialogFlow> dialogFlowWriteOptions,
+            IOptionsSnapshot<DialogFlow> dialogFlow
             )
         {
             _writeOptions = writeOptions;
             _appSettings = appSettings.Value;
+            _dialogFlowWriteOptions = dialogFlowWriteOptions;
+            _dialogFlow = dialogFlow.Value;
         }
         /// <summary>
         /// Update Luis app reference detils for bot's external access.
@@ -163,6 +169,25 @@ namespace SysforeAIBot.Controllers
         public JsonResult GetBotConfigDetails()
         {
             return new JsonResult(_appSettings);
+        }
+
+        [HttpGet("GetDialogFlowDetails")]
+        public JsonResult GetDialogFlowDetails()
+        {
+            return new JsonResult(_dialogFlow);
+        }
+
+        [HttpPut("UpdateDialogFlow")]
+        public IActionResult UpdateDialogFlow([FromBody]DialogFlow dialogFlow)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            _dialogFlowWriteOptions.Update(opt => {
+                opt.Question = dialogFlow.Question;
+                opt.Answer = dialogFlow.Answer;
+                opt.Branches = dialogFlow.Branches;
+            });
+            return NoContent();
         }
     }
 }

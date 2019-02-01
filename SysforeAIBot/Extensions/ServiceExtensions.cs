@@ -75,6 +75,12 @@ namespace SysforeAIBot.Extensions
                 }
                 services.ConfigureWritable<AppSettings>(Configuration.GetSection("AppSettings"));
 
+                var dialogFlowDescriptorToRemove = services.Where(d => d.ServiceType.ToString().Contains("DialogFlow")).ToList();
+                foreach (var item in dialogFlowDescriptorToRemove)
+                {
+                    services.Remove(item);
+                }
+                services.ConfigureWritable<DialogFlow>(Configuration.GetSection("DialogFlow"));
             };
 
             ChangeToken.OnChange(() => Configuration.GetReloadToken(), onChange);
