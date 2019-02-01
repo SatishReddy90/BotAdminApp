@@ -183,7 +183,7 @@ namespace SysforeAIBot.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
             _dialogFlowWriteOptions.Update(opt => {
-                opt.Question = dialogFlow.Question;
+                opt.NextResponse = dialogFlow.NextResponse;
                 opt.Answer = dialogFlow.Answer;
                 opt.Branches = dialogFlow.Branches;
             });

@@ -174,7 +174,7 @@ namespace SysforeAIBot
                 }
                 if (node.Branches != null && node.Branches.Count() > 0){                   
 
-                    var reply = context.Activity.CreateReply(node.Question);
+                    var reply = context.Activity.CreateReply(node.NextResponse);
                     reply.Type = ActivityTypes.Message;
                     reply.TextFormat = TextFormatTypes.Plain;
 
@@ -197,7 +197,8 @@ namespace SysforeAIBot
                 }
                 else
                 {
-                    var responseMessage = GetFinalResponse(node.Question);
+                    //var responseMessage = GetFinalResponse(node.NextResponse);
+                    var responseMessage = node.NextResponse;
 
                     await _accessors.Node.DeleteAsync(context);
                     await _accessors.IsInDialogFlow.DeleteAsync(context);
@@ -269,7 +270,7 @@ namespace SysforeAIBot
                 //var msg = @"Oops! Didn't get that. Let's have another go!";
                 //await context.SendActivityAsync(msg, cancellationToken: cancellationToken);
                 var node =  LoadDialogFlowConfig();
-                var reply = context.Activity.CreateReply(node.Question);
+                var reply = context.Activity.CreateReply(node.NextResponse);
                 reply.Type = ActivityTypes.Message;
                 reply.TextFormat = TextFormatTypes.Plain;
 

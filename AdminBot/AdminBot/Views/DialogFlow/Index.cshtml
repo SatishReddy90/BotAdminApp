@@ -50,11 +50,11 @@
                             A new node will be added as a child to the selected node.
                         </div>
                         <div class="form-group">
-                            <label for="opt-add">Option:</label>
+                            <label for="opt-add">User Choice:</label>
                             <input type="text" class="form-control" id="opt-add">
                         </div>
                         <div class="form-group">
-                            <label for="next-qstn-add">Next Question:</label>
+                            <label for="next-qstn-add">Next Response:</label>
                             <input type="text" class="form-control" id="next-qstn-add">
                         </div>
                         <button type="button" class="btn btn-primary" onclick="addNode()">Add</button>
@@ -65,11 +65,11 @@
                             The selected node will be updated with the provided values.
                         </div>
                         <div class="form-group">
-                            <label for="opt-update">Option:</label>
+                            <label for="opt-update">User Choice:</label>
                             <input type="text" class="form-control" id="opt-update">
                         </div>
                         <div class="form-group">
-                            <label for="next-qstn-update">Next Question:</label>
+                            <label for="next-qstn-update">Next Response:</label>
                             <input type="text" class="form-control" id="next-qstn-update">
                         </div>
                         <button type="button" class="btn btn-primary" onclick="updateNode()">Update</button>
@@ -135,6 +135,10 @@
                     $('#dialog-tree')
                         .on("changed.jstree", function (e, data) {
                             node = data.instance.get_node(data.selected[0]);
+                            var result = { answer: null, nextResponse: null };
+                            getFlowDataNode(node, flowData, result);
+                            $('#opt-update').val(result.answer);
+                            $('#next-qstn-update').val(result.nextResponse);
                             $('.modal').modal();
                         })
                         .jstree({
@@ -151,8 +155,18 @@
                     hideLoader();
                 });
         }
-        
 
+        function getFlowDataNode(treeNode, flowDataNode, result) {
+            if ("(" + flowDataNode.answer + ") " + flowDataNode.nextResponse == treeNode.text) { 
+                result.answer = flowDataNode.answer;
+                result.nextResponse = flowDataNode.nextResponse;
+                return;
+            }
+            for (var i = 0; i < flowDataNode.branches.length; i++) {
+                getFlowDataNode(treeNode, flowDataNode.branches[i],result);
+            }
+        }
+        
         function displayLoader() {
             $('#loader').addClass("loader");
         }
@@ -165,7 +179,7 @@
                 return null;
             }
             var treeData = {
-                "text": "(" + flowData.answer + ") " + flowData.question,
+                "text": "(" + flowData.answer + ") " + flowData.nextResponse,
                 "state": { "opened": true },
                 "icon": false,
                 "children": []
@@ -178,7 +192,7 @@
         }
 
         function attachNode(parent, node, tree) {
-            if ("(" + tree.answer + ") " + tree.question == parent) {
+            if ("(" + tree.answer + ") " + tree.nextResponse == parent) {
                 tree.branches.push(node);
                 return;
             }
@@ -187,25 +201,25 @@
             }
         }
 
-        function updateFlowDataNode(question, updatedNode, tree) {
-            if ("(" + tree.answer + ") " + tree.question == question) {
-                tree.question = updatedNode.question;
+        function updateFlowDataNode(nextResponse, updatedNode, tree) {
+            if ("(" + tree.answer + ") " + tree.nextResponse == nextResponse) {
+                tree.nextResponse = updatedNode.nextResponse;
                 tree.answer = updatedNode.answer;
                 return;
             }
             for (var i = 0; i < tree.branches.length; i++) {
-                updateFlowDataNode(question, updatedNode, tree.branches[i]);
+                updateFlowDataNode(nextResponse, updatedNode, tree.branches[i]);
             }
         }
 
-        function deleteFlowDataNode(question, node, parentNode, index) {
-            if ("(" + node.answer + ") " + node.question == question) {
+        function deleteFlowDataNode(nextResponse, node, parentNode, index) {
+            if ("(" + node.answer + ") " + node.nextResponse == nextResponse) {
                 //delete node from parentNode
                 parentNode.branches.splice(index, 1);
                 return;
             }
             for (var i = 0; i < node.branches.length; i++) {
-                deleteFlowDataNode(question, node.branches[i], node, i);
+                deleteFlowDataNode(nextResponse, node.branches[i], node, i);
             }
         }
 
@@ -214,16 +228,16 @@
             //node.text="test";
             //$('#selected-node').text(node.text);
             var answer = $('#opt-add').val();
-            var question = $('#next-qstn-add').val();
+            var nextResponse = $('#next-qstn-add').val();
 
             var flowDataNode = {
                 "answer": answer,
-                "question": question,
+                "nextResponse": nextResponse,
                 "branches": []
             };
 
             var treeDataNode = {
-                "text": "(" + answer + ")" + " " + question,
+                "text": "(" + answer + ")" + " " + nextResponse,
                 "state": { "opened": true },
                 "icon": false,
                 "children": []
@@ -240,22 +254,22 @@
 
         function updateNode() {
             var answer = $('#opt-update').val();
-            var question = $('#next-qstn-update').val();
+            var nextResponse = $('#next-qstn-update').val();
 
             var flowDataNode = {
                 "answer": answer,
-                "question": question
+                "nextResponse": nextResponse
             };
 
             //var treeDataNode = {
-            //    "text": "(" + answer + ")" + " " + question,
+            //    "text": "(" + answer + ")" + " " + nextResponse,
             //    "state": { "opened": true },
             //    "icon": false,
             //    "children": []
             //};
 
             updateFlowDataNode(node.text, flowDataNode, flowData);
-            $.jstree.reference('#dialog-tree').rename_node(node, "(" + answer + ") " + question);
+            $.jstree.reference('#dialog-tree').rename_node(node, "(" + answer + ") " + nextResponse);
 
             console.log(flowData);
             $('.modal').modal('hide');
@@ -292,7 +306,8 @@
                 })
                 .always(function () {
                     hideLoader();
-                    loadData();
+                    //loadData();
+                    //window.location.reload();
                 });
         }
 
