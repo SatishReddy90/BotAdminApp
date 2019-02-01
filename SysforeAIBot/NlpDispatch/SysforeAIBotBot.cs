@@ -45,6 +45,8 @@ namespace SysforeAIBot
         /// </summary>
         public AppSettings _appSettings { get; set; }
 
+        public DialogFlow _dialogFlow { get; set; }
+
         private readonly SysforeAIBotAccessors _accessors;
 
         static string[] Scopes = { SheetsService.Scope.Spreadsheets };
@@ -53,10 +55,11 @@ namespace SysforeAIBot
         /// Initializes a new instance of the <see cref="NlpDispatchBot"/> class.
         /// </summary>
         /// <param name="services">Services configured from the ".bot" file.</param>
-        public SysforeAIBotBot(IOptionsSnapshot<AppSettings> appSettings, SysforeAIBotAccessors accessors)
+        public SysforeAIBotBot(IOptionsSnapshot<AppSettings> appSettings, IOptionsSnapshot<DialogFlow> dialogFlow, SysforeAIBotAccessors accessors)
         {
             _accessors = accessors ?? throw new System.ArgumentNullException(nameof(accessors));
             _appSettings = appSettings.Value;
+            _dialogFlow = dialogFlow.Value;
             _services = BotServiceHelper.InitBotServices(_appSettings);
         }
 
@@ -144,6 +147,7 @@ namespace SysforeAIBot
             //    await context.SendActivityAsync($"Dispatch intent: {topIntent.Value.intent} ({topIntent.Value.score}).");
             //}
             ConversationFlow flow = await _accessors.ConversationFlowAccessor.GetAsync(context, () => new ConversationFlow());
+            bool isInDialogFlow = await _accessors.IsInDialogFlow.GetAsync(context, () => { return false; });
             if (flow.LastQuestionAsked != ConversationFlow.Question.None)
             {
                 UserProfile profile = await _accessors.UserProfileAccessor.GetAsync(context, () => new UserProfile());
@@ -156,6 +160,51 @@ namespace SysforeAIBot
 
                 await _accessors.UserProfileAccessor.SetAsync(context, profile);
                 await _accessors.UserState.SaveChangesAsync(context);
+            }
+            else if(isInDialogFlow)
+            {
+                var node = await _accessors.Node.GetAsync(context, () => LoadDialogFlowConfig());
+                foreach (var branch in node.Branches)
+                {
+                    if (context.Activity.Text == branch.Answer)
+                    {
+                        node = branch;
+                        break;
+                    }
+                }
+                if (node.Branches != null && node.Branches.Count() > 0){                   
+
+                    var reply = context.Activity.CreateReply(node.Question);
+                    reply.Type = ActivityTypes.Message;
+                    reply.TextFormat = TextFormatTypes.Plain;
+
+                    var actions = new List<CardAction>();
+
+                    reply.SuggestedActions = new SuggestedActions()
+                    {
+                        Actions = node.Branches.Select(b => new CardAction()
+                        {
+                            Title = b.Answer,
+                            Type = ActionTypes.ImBack,
+                            Value = b.Answer
+                        }).ToList()
+                    };
+
+                    await _accessors.Node.SetAsync(context, node);
+                    await _accessors.ConversationState.SaveChangesAsync(context);
+
+                    await context.SendActivityAsync(reply);
+                }
+                else
+                {
+                    var responseMessage = GetFinalResponse(node.Question);
+
+                    await _accessors.Node.DeleteAsync(context);
+                    await _accessors.IsInDialogFlow.DeleteAsync(context);
+                    await _accessors.ConversationState.SaveChangesAsync(context);
+
+                    await context.SendActivityAsync(responseMessage);
+                }
             }
             else if (_services.Intents.Contains(topIntent.Value.intent) && topIntent.Value.score >= 0.75)
             {
@@ -211,14 +260,36 @@ namespace SysforeAIBot
             //    }
             //}
             var response = !string.IsNullOrEmpty(appName)? await _services.QnAServices[appName].GetAnswersAsync(context): await _services.QnAServices.First().Value.GetAnswersAsync(context);
-            if (response != null && response.Length > 0)
+            if (response != null && response.Length > 0 && response[0].Score>=0.30)
             {
                 await context.SendActivityAsync(response[0].Answer, cancellationToken: cancellationToken);
             }
             else
             {
-                var msg = @"Oops! Didn't get that. Let's have another go!";
-                await context.SendActivityAsync(msg, cancellationToken: cancellationToken);
+                //var msg = @"Oops! Didn't get that. Let's have another go!";
+                //await context.SendActivityAsync(msg, cancellationToken: cancellationToken);
+                var node =  LoadDialogFlowConfig();
+                var reply = context.Activity.CreateReply(node.Question);
+                reply.Type = ActivityTypes.Message;
+                reply.TextFormat = TextFormatTypes.Plain;
+
+                var actions = new List<CardAction>();
+
+                reply.SuggestedActions = new SuggestedActions()
+                {
+                    Actions = node.Branches.Select(b => new CardAction()
+                    {
+                        Title = b.Answer,
+                        Type = ActionTypes.ImBack,
+                        Value = b.Answer
+                    }).ToList()
+                };
+
+                await _accessors.Node.SetAsync(context, node);
+                await _accessors.IsInDialogFlow.SetAsync(context, true);
+                await _accessors.ConversationState.SaveChangesAsync(context);
+
+                await context.SendActivityAsync(reply);
             }
         }
 
@@ -412,6 +483,14 @@ namespace SysforeAIBot
             return message is null;
         }
 
+        private DialogFlow LoadDialogFlowConfig()
+        {
+            return _dialogFlow;
+        }
 
+        private string GetFinalResponse(string question)
+        {
+            return $"Final answer for the question \"{question}\" .";
+        }
     }
 }

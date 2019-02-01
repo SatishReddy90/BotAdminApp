@@ -34,6 +34,24 @@ namespace SysforeAIBot.NlpDispatch
         /// <value>The accessor name for the user profile property accessor.</value>
         /// <remarks>Accessors require a unique name.</remarks>
         public static string UserProfileName { get; } = "UserProfile";
+        /// <summary>
+        /// Gets the <see cref="IStatePropertyAccessor{T}"/> name used for the <see cref="CounterState"/> accessor.
+        /// </summary>
+        /// <remarks>Accessors require a unique name.</remarks>
+        /// <value>The accessor name for the counter accessor.</value>
+        public static string NodeName { get; } = $"{nameof(SysforeAIBotAccessors)}.Node";
+
+        public static string IsInDialogFlowName { get; } = $"{nameof(SysforeAIBotAccessors)}.IsInDialogFlow";
+
+        /// <summary>
+        /// Gets or sets the <see cref="IStatePropertyAccessor{T}"/> for CounterState.
+        /// </summary>
+        /// <value>
+        /// The accessor stores the turn count for the conversation.
+        /// </value>
+        public IStatePropertyAccessor<DialogFlow> Node { get; set; }
+
+        public IStatePropertyAccessor<bool> IsInDialogFlow { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="IStatePropertyAccessor{T}"/> for the conversation flow property.

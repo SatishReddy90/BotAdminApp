@@ -112,7 +112,9 @@ namespace SysforeAIBot.Extensions
                 var accessors = new SysforeAIBotAccessors(conversationState, userState)
                 {
                     ConversationFlowAccessor = conversationState.CreateProperty<ConversationFlow>(SysforeAIBotAccessors.ConversationFlowName),
-                    UserProfileAccessor = userState.CreateProperty<UserProfile>(SysforeAIBotAccessors.UserProfileName)
+                    UserProfileAccessor = userState.CreateProperty<UserProfile>(SysforeAIBotAccessors.UserProfileName),
+                    Node = conversationState.CreateProperty<DialogFlow>(SysforeAIBotAccessors.NodeName),
+                    IsInDialogFlow = conversationState.CreateProperty<bool>(SysforeAIBotAccessors.IsInDialogFlowName)
                 };
 
                 return accessors;
