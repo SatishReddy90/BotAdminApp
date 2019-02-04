@@ -109,3 +109,27 @@ body {
     font-style:italic;
     margin-bottom: 10px;
 }
+
+.jstree-default .jstree-anchor {
+    height: auto !important;
+    margin-bottom: 10px;
+    background: #f5f5f5;
+    margin-right: 20px;
+    padding: 6px;
+    width: 100%;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#dialog-flow-heading{
+    display:inline-block;
+}
+
+#next-qstn-add{
+    height:150px;
+}
+
+#next-qstn-update {
+    height: 150px;
+}
