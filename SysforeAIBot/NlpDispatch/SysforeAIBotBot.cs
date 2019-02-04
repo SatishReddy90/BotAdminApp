@@ -199,12 +199,14 @@ namespace SysforeAIBot
                 {
                     //var responseMessage = GetFinalResponse(node.NextResponse);
                     var responseMessage = node.NextResponse;
+                    string finalMessage = $"Hoping that I've answered you! Let me know if there are any other queries which I can help you with.";
 
                     await _accessors.Node.DeleteAsync(context);
                     await _accessors.IsInDialogFlow.DeleteAsync(context);
                     await _accessors.ConversationState.SaveChangesAsync(context);
 
                     await context.SendActivityAsync(responseMessage);
+                    await context.SendActivityAsync(finalMessage);
                 }
             }
             else if (_services.Intents.Contains(topIntent.Value.intent) && topIntent.Value.score >= 0.75)
